@@ -1,4 +1,4 @@
-/* JEBTest: A C++ unit testing framework
+/* JEBDebug: C++ macros and functions for debugging and profiling
  * Copyright 2014 Jan Erik Breimo
  * All rights reserved.
  *
