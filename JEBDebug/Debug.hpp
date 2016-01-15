@@ -20,31 +20,31 @@ static std::ostream* JEB_Stream = &std::clog;
 
 #define JEB_CHECKPOINT() \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << std::endl
+                << "(?)" << std::endl
 #define JEB_MESSAGE(msg) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" << msg << std::endl
+                << "(?)\n\t" << msg << std::endl
 #define JEB_SHOW(var) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" #var " = " << (var) << std::endl
+                << "(?)\n\t" #var " = " << (var) << std::endl
 #define JEB_SHOW2(var1, var2) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" #var1 " = " << (var1) \
+                << "(?)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) << std::endl
 #define JEB_SHOW3(var1, var2, var3) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" #var1 " = " << (var1) \
+                << "(?)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
                 << "\n\t" #var3 " = " << (var3) << std::endl
 #define JEB_SHOW4(var1, var2, var3, var4) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" #var1 " = " << (var1) \
+                << "(?)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
                 << "\n\t" #var3 " = " << (var3) \
                 << "\n\t" #var4 " = " << (var4) << std::endl
 #define JEB_SHOW5(var1, var2, var3, var4, var5) \
     *JEB_Stream << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "\n\t" #var1 " = " << (var1) \
+                << "(?)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
                 << "\n\t" #var3 " = " << (var3) \
                 << "\n\t" #var4 " = " << (var4) \
