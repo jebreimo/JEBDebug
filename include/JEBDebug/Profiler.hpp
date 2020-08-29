@@ -5,25 +5,21 @@
  * This file is distributed under the BSD License.
  * License text is included with the source distribution.
  */
-#ifndef JEBDEBUG_PROFILER_HPP
-#define JEBDEBUG_PROFILER_HPP
+#pragma once
 
 #include <algorithm>
-#include <cstdint>
+#include <chrono>
 #include <limits>
 #include <map>
 #include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <Windows.h>
-#include "Debug.hpp"
 
-namespace JEBDebug {
-
+namespace JEBDebug
+{
     namespace Profiler_Internal
     {
-
         template <typename InpIt1, typename InpIt2>
         std::pair<InpIt1, InpIt2> mismatch(InpIt1 beg, InpIt1 end,
                                            InpIt2 cmpBeg, InpIt2 cmpEnd)
@@ -35,7 +31,6 @@ namespace JEBDebug {
             }
             return std::make_pair(beg, cmpBeg);
         }
-
     }
 
     class ProfilerSection
@@ -79,11 +74,11 @@ namespace JEBDebug {
         ProfilerData()
          : m_Count(0),
            m_AccTime(0),
-           m_MinTime(std::numeric_limits<int64_t>::max()),
-           m_MaxTime(std::numeric_limits<int64_t>::min())
+           m_MinTime(std::numeric_limits<double>::max()),
+           m_MaxTime(-std::numeric_limits<double>::max())
         {}
 
-        void addTime(int64_t time)
+        void addTime(double time)
         {
             ++m_Count;
             m_AccTime += time;
@@ -100,35 +95,28 @@ namespace JEBDebug {
 
         double accTime() const
         {
-            return m_AccTime / frequency();
+            return m_AccTime;
         }
 
         double avgTime() const
         {
-            return m_Count == 0 ? 0.0 : accTime() / m_Count;
+            return m_Count == 0 ? 0.0 : m_AccTime / m_Count;
         }
 
         double minTime() const
         {
-            return m_MinTime / frequency();
+            return m_MinTime;
         }
 
         double maxTime() const
         {
-            return m_MaxTime / frequency();
+            return m_MaxTime;
         }
     private:
-        static double frequency()
-        {
-            LARGE_INTEGER ticksPersSecond;
-            QueryPerformanceFrequency(&ticksPersSecond);
-            return static_cast<double>(ticksPersSecond.QuadPart);
-        }
-
         size_t m_Count;
-        int64_t m_AccTime;
-        int64_t m_MinTime;
-        int64_t m_MaxTime;
+        double m_AccTime;
+        double m_MinTime;
+        double m_MaxTime;
     };
 
     class Profiler
@@ -149,7 +137,7 @@ namespace JEBDebug {
                      const std::string& funcName,
                      const std::string& name,
                      size_t lineNo,
-                     int64_t time)
+                     double time)
         {
             ProfilerSection section(fileName, funcName, name, lineNo);
             auto it = m_Profiles.find(section);
@@ -171,9 +159,7 @@ namespace JEBDebug {
                                      (*it)->first.funcName().size());
             }
 
-            std::string prefix = commonFileNamePrefix();
-
-            nameWidth = std::min(nameWidth, (size_t)30);
+            nameWidth = std::min(nameWidth, size_t(30));
             for (auto it = m_Sequence.begin(); it != m_Sequence.end(); ++it)
             {
                 os << std::left << std::setw(nameWidth)
@@ -202,7 +188,7 @@ namespace JEBDebug {
             write(file);
         }
     private:
-        Profiler() {}
+        Profiler() = default;
 
         std::string commonFileNamePrefix() const
         {
@@ -241,37 +227,37 @@ namespace JEBDebug {
               m_FuncName(funcName),
               m_Name(name),
               m_LineNo(lineNo),
-              m_StartTime(clock())
+              m_StartTime(std::chrono::high_resolution_clock::now())
         {}
 
         ~ProfilerTimer()
         {
-            auto endTime = clock();
-            auto elapsed = endTime - m_StartTime;
+            using namespace std::chrono;
+            auto endTime = high_resolution_clock::now();
+            auto elapsed = duration_cast<duration<double>>(endTime - m_StartTime);
             Profiler::instance().addTime(m_FileName, m_FuncName, m_Name,
-                                          m_LineNo, elapsed);
+                                         m_LineNo, elapsed.count());
         }
 
     private:
-        static int64_t clock()
-        {
-            LARGE_INTEGER ticks;
-            QueryPerformanceCounter(&ticks);
-            return ticks.QuadPart;
-        }
-
         std::string m_FileName;
         std::string m_FuncName;
         std::string m_Name;
         size_t m_LineNo;
-        int64_t m_StartTime;
+        std::chrono::high_resolution_clock::time_point m_StartTime;
     };
 
 }
 
+#define JEBPROFILER_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
+#define JEBPROFILER_UNIQUE_NAME_EXPANDER1(name, lineno) \
+    JEBPROFILER_UNIQUE_NAME_EXPANDER2(name, lineno)
+#define JEBPROFILER_UNIQUE_NAME(name) \
+    JEBPROFILER_UNIQUE_NAME_EXPANDER1(name, __LINE__)
+
 #define JEB_PROFILE() \
-    JEBDebug::ProfilerTimer JEB_DETAIL_UNIQUE_NAME(profile) \
+    ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
         (__FILE__, __FUNCTION__, __LINE__)
 
 #define JEB_PROFILER_REPORT() \
-    JEBDebug::Profiler::instance().write()
+    ::JEBDebug::Profiler::instance().write()
