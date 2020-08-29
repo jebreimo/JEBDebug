@@ -15,40 +15,60 @@
 
 namespace JEBDebug
 {
-    static std::ostream* STREAM = &std::clog;
+    static std::ostream* JEB_STREAM = &std::clog;
 }
 
 #define JEB_CHECKPOINT() \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "(...)" << std::endl
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
+                << "(...)" << std::endl; \
+    } while (false)
+
 #define JEB_MESSAGE(msg) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "(...)\n\t" << msg << std::endl
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
+                << "(...)\n\t" << msg << std::endl; \
+    } while (false)
+
 #define JEB_SHOW(var) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
-                << "(...)\n\t" #var " = " << (var) << std::endl
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
+                << "(...)\n\t" #var " = " << (var) << std::endl; \
+    } while (false)
+
 #define JEB_SHOW2(var1, var2) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                 << "(...)\n\t" #var1 " = " << (var1) \
-                << "\n\t" #var2 " = " << (var2) << std::endl
+                << "\n\t" #var2 " = " << (var2) << std::endl; \
+    } while (false)
+
 #define JEB_SHOW3(var1, var2, var3) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                 << "(...)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
-                << "\n\t" #var3 " = " << (var3) << std::endl
+                << "\n\t" #var3 " = " << (var3) << std::endl; \
+    } while (false)
+
 #define JEB_SHOW4(var1, var2, var3, var4) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                 << "(...)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
                 << "\n\t" #var3 " = " << (var3) \
-                << "\n\t" #var4 " = " << (var4) << std::endl
+                << "\n\t" #var4 " = " << (var4) << std::endl; \
+    } while (false)
+
 #define JEB_SHOW5(var1, var2, var3, var4, var5) \
-    *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+    do { \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                 << "(...)\n\t" #var1 " = " << (var1) \
                 << "\n\t" #var2 " = " << (var2) \
                 << "\n\t" #var3 " = " << (var3) \
                 << "\n\t" #var4 " = " << (var4) \
-                << "\n\t" #var5 " = " << (var5) << std::endl
+                << "\n\t" #var5 " = " << (var5) << std::endl; \
+    } while (false)
 
 #define JEBDEBUG_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
 #define JEBDEBUG_UNIQUE_NAME_EXPANDER1(name, lineno) \
@@ -60,7 +80,7 @@ namespace JEBDebug
 #define JEBDEBUG_AS_STRING(a) JEBDEBUG_AS_STRING_TRICK(a)
 
 #define JEBDEBUG_CONTEXT() \
-    (std::string(__FILE__ "[" JEBDEBUG_AS_STRING(__LINE__) "]: ") + \
+    (std::string(__FILE__ ":" JEBDEBUG_AS_STRING(__LINE__) ": ") + \
     __FUNCTION__)
 
 namespace JEBDebug
@@ -105,6 +125,7 @@ namespace JEBDebug
         {
             return m_IsStopped;
         }
+
     private:
         high_resolution_clock::time_point m_StartTime;
         high_resolution_clock::duration m_AccumulatedTime;
@@ -151,10 +172,10 @@ namespace JEBDebug
 
 #define JEB_TIMEIT() \
     ::JEBDebug::ScopedTimer JEBDEBUG_UNIQUE_NAME(JEB_ScopedTimer) \
-        (JEBDEBUG_CONTEXT() + "\n\telapsed time = ", *::JEBDebug::STREAM)
+        (JEBDEBUG_CONTEXT() + "\n\telapsed time = ", *::JEBDebug::JEB_STREAM)
 
-namespace JEBDebug { namespace internal {
-
+namespace JEBDebug {namespace internal
+{
     template <typename It>
     void write(std::ostream& os, It begin, It end)
     {
@@ -187,32 +208,32 @@ namespace JEBDebug { namespace internal {
 
 #define JEB_SHOW_RANGE(begin, end) \
     do { \
-        *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ \
                     << "]:\n\t(" #begin " ... " #end ") = ["; \
-        ::JEBDebug::internal::write(*::JEBDebug::STREAM, (begin), (end)); \
-        *::JEBDebug::STREAM << "]" << std::endl; \
+        ::JEBDebug::internal::write(*::JEBDebug::JEB_STREAM, (begin), (end)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
 
 #define JEB_SHOW_CONTAINER(c) \
     do { \
-        *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                     << "\n\t" #c " = ["; \
-        ::JEBDebug::internal::writeContainer(*::JEBDebug::STREAM, (c)); \
-        *::JEBDebug::STREAM << "]" << std::endl; \
+        ::JEBDebug::internal::writeContainer(*::JEBDebug::JEB_STREAM, (c)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
 
 #define JEB_PRETTY_RANGE(begin, end) \
     do { \
-        *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ \
                     << "]:\n\t(" #begin " ... " #end ") = [\n\t"; \
-        ::JEBDebug::internal::writePretty(*::JEBDebug::STREAM, (begin), (end)); \
-        *::JEBDebug::STREAM << "]" << std::endl; \
+        ::JEBDebug::internal::writePretty(*::JEBDebug::JEB_STREAM, (begin), (end)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
 
 #define JEB_PRETTY_CONTAINER(c) \
     do { \
-        *::JEBDebug::STREAM << __FILE__ "[" << __LINE__ << "]: " << __FUNCTION__ \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
                     << "\n\t" #c " = [\n\t"; \
-        ::JEBDebug::internal::writeContainerPretty(*::JEBDebug::STREAM, (c)); \
-        *::JEBDebug::STREAM << "]" << std::endl; \
+        ::JEBDebug::internal::writeContainerPretty(*::JEBDebug::JEB_STREAM, (c)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
