@@ -137,7 +137,7 @@ namespace JEBDebug
     {
     public:
         typedef typename String::value_type CharT;
-        typedef std::basic_ostream <CharT, std::char_traits<CharT>> Stream;
+        typedef std::basic_ostream<CharT, std::char_traits<CharT>> Stream;
 
         ScopedTimerImpl(const String& label, Stream& stream)
             : m_Label(label),
@@ -162,8 +162,8 @@ namespace JEBDebug
     typedef ScopedTimerImpl<std::wstring> ScopedTimerW;
 
     template <typename Char, typename Traits>
-    std::basic_ostream <Char, Traits>& operator<<(
-        std::basic_ostream <Char, Traits>& os,
+    std::basic_ostream<Char, Traits>& operator<<(
+        std::basic_ostream<Char, Traits>& os,
         const CpuTimer& stopwatch)
     {
         return os << stopwatch.seconds();
@@ -174,7 +174,7 @@ namespace JEBDebug
     ::JEBDebug::ScopedTimer JEBDEBUG_UNIQUE_NAME(JEB_ScopedTimer) \
         (JEBDEBUG_CONTEXT() + "\n\telapsed time = ", *::JEBDebug::JEB_STREAM)
 
-namespace JEBDebug {namespace internal
+namespace JEBDebug { namespace internal
 {
     template <typename It>
     void write(std::ostream& os, It begin, It end)
@@ -208,16 +208,16 @@ namespace JEBDebug {namespace internal
 
 #define JEB_SHOW_RANGE(begin, end) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ \
-                    << "]:\n\t(" #begin " ... " #end ") = ["; \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << "]:" \
+            << __FUNCTION__ << "(...)\n\t(" #begin " ... " #end ") = ["; \
         ::JEBDebug::internal::write(*::JEBDebug::JEB_STREAM, (begin), (end)); \
         *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
 
 #define JEB_SHOW_CONTAINER(c) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                    << "\n\t" #c " = ["; \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " \
+            << __FUNCTION__ << "(...)\n\t" #c " = ["; \
         ::JEBDebug::internal::writeContainer(*::JEBDebug::JEB_STREAM, (c)); \
         *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
@@ -232,8 +232,8 @@ namespace JEBDebug {namespace internal
 
 #define JEB_PRETTY_CONTAINER(c) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                    << "\n\t" #c " = [\n\t"; \
+        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " \
+            << __FUNCTION__ << "(...)\n\t" #c " = [\n\t"; \
         ::JEBDebug::internal::writeContainerPretty(*::JEBDebug::JEB_STREAM, (c)); \
         *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
