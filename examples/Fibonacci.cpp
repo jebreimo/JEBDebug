@@ -6,6 +6,7 @@
  * License text is included with the source distribution.
  */
 #include "JEBDebug/Profiler.hpp"
+#include "JEBDebug/Debug.hpp"
 #include <iostream>
 
 long fibonacci_rec(long n)
@@ -33,10 +34,11 @@ long fibonacci_it(long n)
 int main()
 {
     JEB_TIMEIT();
-    int n = 25;
+
     {
+        const int n = 25;
         JEB_PROFILE();
-        JEB_SHOW3(n, fibonacci_rec(n), fibonacci_it(n));
+        JEB_SHOW(n, fibonacci_rec(n), fibonacci_it(n));
     }
     JEB_PROFILER_REPORT();
     return 0;

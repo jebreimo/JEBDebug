@@ -12,6 +12,7 @@
 #include <limits>
 #include <map>
 #include <iomanip>
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -171,7 +172,11 @@ namespace JEBDebug
                    << " " << (*it)->second.maxTime()
                    << " " << (*it)->second.avgTime()
                    << "  " << (*it)->first.fileName()
-                   << "[" << (*it)->first.lineNo() << "]"
+                   #ifdef _MSC_VER
+                   << "(" << (*it)->first.lineNo() << ")"
+                   #else
+                   << ":" << (*it)->first.lineNo()
+                   #endif
                    << std::endl;
             }
         }
@@ -255,9 +260,15 @@ namespace JEBDebug
 #define JEBPROFILER_UNIQUE_NAME(name) \
     JEBPROFILER_UNIQUE_NAME_EXPANDER1(name, __LINE__)
 
-#define JEB_PROFILE() \
-    ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
-        (__FILE__, __FUNCTION__, __LINE__)
+#ifdef _MSC_VER
+    #define JEB_PROFILE() \
+        ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
+            (__FILE__, __FUNCSIG__, __LINE__)
+#else
+    #define JEB_PROFILE() \
+        ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
+            (__FILE__, __PRETTY_FUNCTION__, __LINE__)
+#endif
 
-#define JEB_PROFILER_REPORT() \
+    #define JEB_PROFILER_REPORT() \
     ::JEBDebug::Profiler::instance().write()

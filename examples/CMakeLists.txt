@@ -5,12 +5,13 @@
 # This file is distributed under the BSD License.
 # License text is included with the source distribution.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.13)
 
 project(Fibonacci)
 
-set(SRC
-    Fibonacci.cpp
-    )
+add_executable(${PROJECT_NAME}
+    Fibonacci.cpp)
 
-add_executable(${PROJECT_NAME} ${SRC})
+target_link_libraries(${PROJECT_NAME}
+    JEBDebug::JEBDebug
+    )

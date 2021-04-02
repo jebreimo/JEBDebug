@@ -18,70 +18,101 @@ namespace JEBDebug
     static std::ostream* JEB_STREAM = &std::clog;
 }
 
+#ifdef _MSC_VER
+    #define _JEBDEBUG_STREAM_LOCATION() \
+        __FILE__ "(" << __LINE__ << "): " << __FUNCSIG__
+#else
+    #define _JEBDEBUG_STREAM_LOCATION() \
+        __FILE__ ":" << __LINE__ << ": " << __PRETTY_FUNCTION__
+#endif
+
 #define JEB_CHECKPOINT() \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)" << std::endl; \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() << std::endl; \
     } while (false)
 
 #define JEB_MESSAGE(msg) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" << msg << std::endl; \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() \
+            << ":\n\t" << msg << std::endl; \
     } while (false)
 
-#define JEB_SHOW(var) \
+// This "recursive" implementation of JEB_SHOW is inspired by the following
+// reply on stackoverflow: https://stackoverflow.com/a/5048661
+#define _JEBDEBUG_NUM_ARGS2(X, X10, X9, X8, X7, X6, X5, X4, X3, X2, X1, N, ...) N
+
+#define _JEBDEBUG_NUM_ARGS(...) _JEBDEBUG_NUM_ARGS2(0, __VA_ARGS__ , 10 , 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+#define _JEBDEBUG_SHOW_1(var, ...) \
+    << "\n\t" #var " = " << (var)
+
+#define _JEBDEBUG_SHOW_2(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_1(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_3(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_2(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_4(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_3(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_5(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_4(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_6(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_5(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_7(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_6(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_8(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_7(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_9(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_8(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_10(var, ...) \
+    << "\n\t" #var " = " << (var) \
+    _JEBDEBUG_SHOW_9(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_N_1(n, ...) \
+    _JEBDEBUG_SHOW_##n(__VA_ARGS__)
+
+#define _JEBDEBUG_SHOW_N(n, ...) \
+    _JEBDEBUG_SHOW_N_1(n, __VA_ARGS__)
+
+#define JEB_SHOW(...) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" #var " = " << (var) << std::endl; \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() << ":" \
+            _JEBDEBUG_SHOW_N(_JEBDEBUG_NUM_ARGS(__VA_ARGS__), __VA_ARGS__) \
+            << std::endl; \
     } while (false)
 
-#define JEB_SHOW2(var1, var2) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" #var1 " = " << (var1) \
-                << "\n\t" #var2 " = " << (var2) << std::endl; \
-    } while (false)
+#define _JEBDEBUG_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
+#define _JEBDEBUG_UNIQUE_NAME_EXPANDER1(name, lineno) \
+    _JEBDEBUG_UNIQUE_NAME_EXPANDER2(name, lineno)
+#define _JEBDEBUG_UNIQUE_NAME(name) \
+    _JEBDEBUG_UNIQUE_NAME_EXPANDER1(name, __LINE__)
 
-#define JEB_SHOW3(var1, var2, var3) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" #var1 " = " << (var1) \
-                << "\n\t" #var2 " = " << (var2) \
-                << "\n\t" #var3 " = " << (var3) << std::endl; \
-    } while (false)
+#define _JEBDEBUG_AS_STRING_TRICK(a) #a
+#define _JEBDEBUG_AS_STRING(a) _JEBDEBUG_AS_STRING_TRICK(a)
 
-#define JEB_SHOW4(var1, var2, var3, var4) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" #var1 " = " << (var1) \
-                << "\n\t" #var2 " = " << (var2) \
-                << "\n\t" #var3 " = " << (var3) \
-                << "\n\t" #var4 " = " << (var4) << std::endl; \
-    } while (false)
-
-#define JEB_SHOW5(var1, var2, var3, var4, var5) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " << __FUNCTION__ \
-                << "(...)\n\t" #var1 " = " << (var1) \
-                << "\n\t" #var2 " = " << (var2) \
-                << "\n\t" #var3 " = " << (var3) \
-                << "\n\t" #var4 " = " << (var4) \
-                << "\n\t" #var5 " = " << (var5) << std::endl; \
-    } while (false)
-
-#define JEBDEBUG_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
-#define JEBDEBUG_UNIQUE_NAME_EXPANDER1(name, lineno) \
-    JEBDEBUG_UNIQUE_NAME_EXPANDER2(name, lineno)
-#define JEBDEBUG_UNIQUE_NAME(name) \
-    JEBDEBUG_UNIQUE_NAME_EXPANDER1(name, __LINE__)
-
-#define JEBDEBUG_AS_STRING_TRICK(a) #a
-#define JEBDEBUG_AS_STRING(a) JEBDEBUG_AS_STRING_TRICK(a)
-
-#define JEBDEBUG_CONTEXT() \
-    (std::string(__FILE__ ":" JEBDEBUG_AS_STRING(__LINE__) ": ") + \
-    __FUNCTION__)
+#ifdef _MSC_VER
+    #define _JEBDEBUG_CONTEXT() \
+        (std::string(__FILE__ "(" _JEBDEBUG_AS_STRING(__LINE__) "): ") + \
+        __FUNCSIG__)
+#else
+    #define _JEBDEBUG_CONTEXT() \
+        (std::string(__FILE__ ":" _JEBDEBUG_AS_STRING(__LINE__) ": ") + \
+        __PRETTY_FUNCTION__)
+#endif
 
 namespace JEBDebug
 {
@@ -103,12 +134,6 @@ namespace JEBDebug
             m_IsStopped = true;
         }
 
-        void reset()
-        {
-            m_AccumulatedTime = high_resolution_clock::duration::zero();
-            m_IsStopped = true;
-        }
-
         double seconds() const
         {
             using namespace std::chrono;
@@ -127,8 +152,8 @@ namespace JEBDebug
         }
 
     private:
-        high_resolution_clock::time_point m_StartTime;
-        high_resolution_clock::duration m_AccumulatedTime;
+        high_resolution_clock::time_point m_StartTime = {};
+        high_resolution_clock::duration m_AccumulatedTime = {};
         bool m_IsStopped = true;
     };
 
@@ -159,7 +184,6 @@ namespace JEBDebug
     };
 
     typedef ScopedTimerImpl<std::string> ScopedTimer;
-    typedef ScopedTimerImpl<std::wstring> ScopedTimerW;
 
     template <typename Char, typename Traits>
     std::basic_ostream<Char, Traits>& operator<<(
@@ -171,8 +195,8 @@ namespace JEBDebug
 }
 
 #define JEB_TIMEIT() \
-    ::JEBDebug::ScopedTimer JEBDEBUG_UNIQUE_NAME(JEB_ScopedTimer) \
-        (JEBDEBUG_CONTEXT() + "\n\telapsed time = ", *::JEBDebug::JEB_STREAM)
+    ::JEBDebug::ScopedTimer _JEBDEBUG_UNIQUE_NAME(JEB_ScopedTimer) \
+        (_JEBDEBUG_CONTEXT() + ":\n\telapsed time = ", *::JEBDebug::JEB_STREAM)
 
 namespace JEBDebug { namespace internal
 {
@@ -206,34 +230,34 @@ namespace JEBDebug { namespace internal
     }
 }}
 
+#define JEB_SHOW_RANGE_FLAT(begin, end) \
+    do { \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() \
+            << ":\n\t(" #begin " ... " #end ") = ["; \
+        ::JEBDebug::internal::write(*::JEBDebug::JEB_STREAM, (begin), (end)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
+    } while (false)
+
+#define JEB_SHOW_CONTAINER_FLAT(c) \
+    do { \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() \
+            << ":\n\t" #c " = ["; \
+        ::JEBDebug::internal::writeContainer(*::JEBDebug::JEB_STREAM, (c)); \
+        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
+    } while (false)
+
 #define JEB_SHOW_RANGE(begin, end) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << "]:" \
-            << __FUNCTION__ << "(...)\n\t(" #begin " ... " #end ") = ["; \
-        ::JEBDebug::internal::write(*::JEBDebug::JEB_STREAM, (begin), (end)); \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() \
+                    << ":\n\t(" #begin " ... " #end ") = [\n\t"; \
+        ::JEBDebug::internal::writePretty(*::JEBDebug::JEB_STREAM, (begin), (end)); \
         *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)
 
 #define JEB_SHOW_CONTAINER(c) \
     do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " \
-            << __FUNCTION__ << "(...)\n\t" #c " = ["; \
-        ::JEBDebug::internal::writeContainer(*::JEBDebug::JEB_STREAM, (c)); \
-        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
-    } while (false)
-
-#define JEB_PRETTY_RANGE(begin, end) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ \
-                    << "]:\n\t(" #begin " ... " #end ") = [\n\t"; \
-        ::JEBDebug::internal::writePretty(*::JEBDebug::JEB_STREAM, (begin), (end)); \
-        *::JEBDebug::JEB_STREAM << "]" << std::endl; \
-    } while (false)
-
-#define JEB_PRETTY_CONTAINER(c) \
-    do { \
-        *::JEBDebug::JEB_STREAM << __FILE__ ":" << __LINE__ << ": " \
-            << __FUNCTION__ << "(...)\n\t" #c " = [\n\t"; \
+        *::JEBDebug::JEB_STREAM << _JEBDEBUG_STREAM_LOCATION() \
+            << ":\n\t" #c " = [\n\t"; \
         ::JEBDebug::internal::writeContainerPretty(*::JEBDebug::JEB_STREAM, (c)); \
         *::JEBDebug::JEB_STREAM << "]" << std::endl; \
     } while (false)

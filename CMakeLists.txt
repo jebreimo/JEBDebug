@@ -10,7 +10,9 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-project(JEBDebug VERSION 1.0.0)
+project(JEBDebug VERSION 1.1.0)
+
+set(CMAKE_CXX_STANDARD 17)
 
 # Set JEBDEBUG_MASTER_PROJECT to ON if Argos is the root level project.
 if (NOT DEFINED JEBDEBUG_MASTER_PROJECT)
@@ -24,6 +26,8 @@ endif ()
 # Install option
 option(JEBDEBUG_INSTALL "Generate the install target" ${JEBDEBUG_MASTER_PROJECT})
 
+option(JEBDEBUG_BUILD_EXAMPLES "Build targets in the examples folder" ${JEBDEBUG_MASTER_PROJECT})
+
 add_library(JEBDebug INTERFACE)
 target_include_directories(JEBDebug
     INTERFACE
@@ -32,6 +36,10 @@ target_include_directories(JEBDebug
     )
 
 add_library(JEBDebug::JEBDebug ALIAS JEBDebug)
+
+if (JEBDEBUG_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif ()
 
 export(TARGETS JEBDebug
     NAMESPACE JEBDebug::
