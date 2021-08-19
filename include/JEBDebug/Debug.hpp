@@ -13,12 +13,59 @@
 #include <iterator>
 #include <ostream>
 #include <string>
+#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+    #include <sstream>
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+#endif
 
 namespace JEBDebug
 {
+#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+    class DebugStreamBuffer : public std::stringbuf
+    {
+    public:
+        ~DebugStreamBuffer() override
+        {
+            DebugStreamBuffer::sync();
+        }
+
+    private:
+        int sync() override
+        {
+            OutputDebugStringA(str().c_str());
+            str({});
+            return std::stringbuf::sync();
+        }
+    };
+
+    class DebugStream : public std::ostream
+    {
+    public:
+        DebugStream()
+            : std::ostream(new DebugStreamBuffer)
+        {}
+
+        ~DebugStream() override
+        {
+            delete std::ostream::rdbuf();
+        }
+    };
+#endif
+
     class Stream
     {
     public:
+        Stream()
+        {
+#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+            if (IsDebuggerPresent())
+                setStream(m_DebugStream);
+#endif
+        }
+
         std::ostream& operator()()
         {
             if (!m_Stream)
@@ -31,6 +78,9 @@ namespace JEBDebug
             m_Stream = &stream;
         }
     private:
+#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+        DebugStream m_DebugStream;
+#endif
         std::ostream* m_Stream = nullptr;
     };
 
@@ -56,61 +106,66 @@ namespace JEBDebug
             << ":\n\t" << msg << std::endl; \
     } while (false)
 
+
 // This "recursive" implementation of JEB_SHOW is inspired by the following
 // reply on stackoverflow: https://stackoverflow.com/a/5048661
-#define _JEBDEBUG_NUM_ARGS2(X, X10, X9, X8, X7, X6, X5, X4, X3, X2, X1, N, ...) N
+// To make it work in Visual Studio I had to use this
+// one as well: https://stackoverflow.com/a/24837037
+#define _JEBDEBUG_GLUE(x, y) x y
 
-#define _JEBDEBUG_NUM_ARGS(...) _JEBDEBUG_NUM_ARGS2(0, __VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define _JEBDEBUG_RETURN_ARG_COUNT(_1_, _2_, _3_, _4_, _5_, _6_, _7_, _8_, _9_, _10_, count, ...) count
+#define _JEBDEBUG_EXPAND_ARGS(args) _JEBDEBUG_RETURN_ARG_COUNT args
+#define _JEBDEBUG_COUNT_ARGS_MAX10(...) _JEBDEBUG_EXPAND_ARGS((__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
 
-#define _JEBDEBUG_SHOW_1(var, ...) \
+#define _JEBDEBUG_OVERLOAD_MACRO2(name, count) name##count
+#define _JEBDEBUG_OVERLOAD_MACRO1(name, count) _JEBDEBUG_OVERLOAD_MACRO2(name, count)
+#define _JEBDEBUG_OVERLOAD_MACRO(name, count) _JEBDEBUG_OVERLOAD_MACRO1(name, count)
+
+#define _JEBDEBUG_CALL_OVERLOAD(name, ...) _JEBDEBUG_GLUE(_JEBDEBUG_OVERLOAD_MACRO(name, _JEBDEBUG_COUNT_ARGS_MAX10(__VA_ARGS__)), (__VA_ARGS__))
+
+#define _JEBDEBUG_SHOW_1(var) \
     << "\n\t" #var " = " << (var)
 
-#define _JEBDEBUG_SHOW_2(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_1(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_2(var1, var2) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_1(var2)
 
-#define _JEBDEBUG_SHOW_3(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_2(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_3(var1, var2, var3) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_2(var2, var3)
 
-#define _JEBDEBUG_SHOW_4(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_3(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_4(var1, var2, var3, var4) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_3(var2, var3, var4)
 
-#define _JEBDEBUG_SHOW_5(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_4(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_5(var1, var2, var3, var4, var5) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_4(var2, var3, var4, var5)
 
-#define _JEBDEBUG_SHOW_6(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_5(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_6(var1, var2, var3, var4, var5, var6) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_5(var2, var3, var4, var5, var6)
 
-#define _JEBDEBUG_SHOW_7(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_6(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_7(var1, var2, var3, var4, var5, var6, var7) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_6(var2, var3, var4, var5, var6, var7)
 
-#define _JEBDEBUG_SHOW_8(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_7(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_8(var1, var2, var3, var4, var5, var6, var7, var8) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_7(var2, var3, var4, var5, var6, var7, var8)
 
-#define _JEBDEBUG_SHOW_9(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_8(__VA_ARGS__)
+#define _JEBDEBUG_SHOW_9(var1, var2, var3, var4, var5, var6, var7, var8, var9) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_8(var2, var3, var4, var5, var6, var7, var8, var9)
 
-#define _JEBDEBUG_SHOW_10(var, ...) \
-    << "\n\t" #var " = " << (var) \
-    _JEBDEBUG_SHOW_9(__VA_ARGS__)
-
-#define _JEBDEBUG_SHOW_N_1(n, ...) \
-    _JEBDEBUG_SHOW_##n(__VA_ARGS__)
-
-#define _JEBDEBUG_SHOW_N(n, ...) \
-    _JEBDEBUG_SHOW_N_1(n, __VA_ARGS__)
+#define _JEBDEBUG_SHOW_10(var1, var2, var3, var4, var5, var6, var7, var8, var9, var10) \
+    << "\n\t" #var1 " = " << (var1) \
+    _JEBDEBUG_SHOW_9(var2, var3, var4, var5, var6, var7, var8, var9, var10)
 
 #define JEB_SHOW(...) \
     do { \
         ::JEBDebug::STREAM() << _JEBDEBUG_STREAM_LOCATION() << ":" \
-            _JEBDEBUG_SHOW_N(_JEBDEBUG_NUM_ARGS(__VA_ARGS__), __VA_ARGS__) \
+            _JEBDEBUG_CALL_OVERLOAD(_JEBDEBUG_SHOW_, __VA_ARGS__) \
             << std::endl; \
     } while (false)
 
