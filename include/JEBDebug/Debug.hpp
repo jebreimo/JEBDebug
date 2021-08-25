@@ -13,7 +13,7 @@
 #include <iterator>
 #include <ostream>
 #include <string>
-#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+#if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
     #include <sstream>
     #ifndef NOMINMAX
         #define NOMINMAX
@@ -23,7 +23,7 @@
 
 namespace JEBDebug
 {
-#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+#if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
     class DebugStreamBuffer : public std::stringbuf
     {
     public:
@@ -60,7 +60,7 @@ namespace JEBDebug
     public:
         Stream()
         {
-#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+#if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
             if (IsDebuggerPresent())
                 setStream(m_DebugStream);
 #endif
@@ -78,7 +78,7 @@ namespace JEBDebug
             m_Stream = &stream;
         }
     private:
-#if defined(_WIN32) && defined(JEB_STREAM_TO_DEBUGGER)
+#if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
         DebugStream m_DebugStream;
 #endif
         std::ostream* m_Stream = nullptr;
@@ -248,7 +248,7 @@ namespace JEBDebug
         ~ScopedTimerImpl()
         {
             m_Timer.stop();
-            m_Stream << m_Label << m_Timer << "\n";
+            m_Stream << m_Label << m_Timer << std::endl;
         }
 
     private:
