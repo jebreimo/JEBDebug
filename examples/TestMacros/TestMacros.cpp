@@ -26,6 +26,9 @@ void test_HEXDUMP()
     std::iota(foo.begin(), foo.end(), 1);
     JEB_HEXDUMP(foo);
     JEB_HEXDUMP(foo.data(), foo.size() * sizeof(int));
+    JEB_HEXDUMP(-1.0);
+    JEB_HEXDUMP(0.0);
+    JEB_HEXDUMP(1.0);
 }
 
 void test_SHOW()

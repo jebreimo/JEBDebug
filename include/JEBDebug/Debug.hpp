@@ -347,9 +347,9 @@ namespace JEBDebug
 {
     namespace internal
     {
-        size_t print_hex_numbers(std::ostream& stream,
-                                 const void* data, size_t num_bytes,
-                                 size_t num_numbers)
+        inline size_t print_hex_numbers(std::ostream& stream,
+                                        const void* data, size_t num_bytes,
+                                        size_t num_numbers)
         {
             auto flags = stream.setf(std::ios::hex, std::ios::basefield);
             auto fill = stream.fill('0');
@@ -365,9 +365,9 @@ namespace JEBDebug
             return n;
         }
 
-        size_t print_characters(std::ostream& stream,
-                                const void* data, size_t num_bytes,
-                                size_t num_chars)
+        inline size_t print_characters(std::ostream& stream,
+                                       const void* data, size_t num_bytes,
+                                       size_t num_chars)
         {
             size_t i = 0;
             auto n = std::min(num_bytes, num_chars);
@@ -385,8 +385,8 @@ namespace JEBDebug
         }
     }
 
-    void hexdump(std::ostream& stream, const void* data, size_t size,
-                 size_t columns = 16)
+    inline void hexdump(std::ostream& stream, const void* data, size_t size,
+                        size_t columns = 16)
     {
         auto flags = stream.setf(std::ios::hex, std::ios::basefield);
         auto fill = stream.fill('0');
@@ -421,7 +421,13 @@ namespace JEBDebug
         stream.flags(flags);
     }
 
-    template <typename T>
+    template <typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+    void hexdump(std::ostream& stream, const T& value)
+    {
+        hexdump(stream, &value, sizeof(value));
+    }
+
+    template <typename T, std::enable_if_t<!std::is_arithmetic_v<T>, int> = 0>
     void hexdump(std::ostream& stream, const T& value)
     {
         using std::data, std::size;
@@ -443,5 +449,5 @@ namespace JEBDebug
         ::JEBDebug::STREAM() << _JEBDEBUG_STREAM_LOCATION() \
                     << ":\n" #__VA_ARGS__ ":\n"; \
         ::JEBDebug::hexdump(::JEBDebug::STREAM(), __VA_ARGS__); \
-        ::JEBDebug::STREAM() << "]" << std::endl; \
+        ::JEBDebug::STREAM() << std::endl; \
     } while (false)
