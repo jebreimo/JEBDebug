@@ -145,38 +145,52 @@ namespace JEBDebug
         {
             auto int_width = [](auto n)
             {
-                return std::streamsize(std::ceil(std::log10(n)));
+                if (n == 0)
+                    return 1;
+                if (n < 0)
+                    return int(std::ceil(std::log10(-n)) + 1);
+                return int(std::ceil(std::log10(n)));
             };
 
             auto float_width = [](auto n)
             {
-                return std::streamsize(std::ceil(std::log10(n))) + 5;
+                if (n < 0)
+                    return int(std::ceil(std::log10(-n)) + 6);
+                if (n < 1)
+                    return 6;
+                return int(std::ceil(std::log10(n))) + 5;
             };
 
-            std::streamsize widths[5] = {};
+            int widths[5] = {5, 3, 3, 3, 8};
             for (const auto& it : sequence_)
             {
                 widths[0] = std::max(widths[0], int_width(it->second.count()));
                 widths[1] = std::max(widths[1], float_width(it->second.acc_time()));
                 widths[2] = std::max(widths[2], float_width(it->second.min_time()));
                 widths[3] = std::max(widths[3], float_width(it->second.max_time()));
-                widths[4] = std::max(widths[4], std::streamsize(it->first.func_name.size()));
+                widths[4] = std::max(widths[4], int(it->first.func_name.size()));
             }
+            using std::left, std::right, std::setw;
+            os << right << setw(widths[0]) << "calls"
+               << " " << setw(widths[1]) << "sum"
+               << " " << setw(widths[2]) << "min"
+               << " " << setw(widths[3]) << "max"
+               << left << "  " << setw(widths[4]) << "function"
+               << "  file\n";
 
             os << std::setprecision(4) << std::fixed;
-            for (auto it = sequence_.begin(); it != sequence_.end(); ++it)
+            for (auto it : sequence_)
             {
-                using std::left, std::right, std::setw;
-                os << right << setw(widths[0]) << (*it)->second.count()
-                   << " " << setw(widths[1]) << (*it)->second.acc_time()
-                   << " " << setw(widths[2]) << (*it)->second.min_time()
-                   << " " << setw(widths[3]) << (*it)->second.max_time()
-                   << "  " << left << setw(widths[4]) << (*it)->first.func_name
-                   << "  " << (*it)->first.file_name
+                os << right << setw(widths[0]) << it->second.count()
+                   << " " << setw(widths[1]) << it->second.acc_time()
+                   << " " << setw(widths[2]) << it->second.min_time()
+                   << " " << setw(widths[3]) << it->second.max_time()
+                   << "  " << left << setw(widths[4]) << it->first.func_name
+                   << "  " << it->first.file_name
                    #ifdef _MSC_VER
-                   << "(" << (*it)->first.line_no << ")"
+                   << "(" << it->first.line_no << ")"
                    #else
-                   << ":" << (*it)->first.line_no
+                   << ":" << it->first.line_no
                    #endif
                    << '\n';
             }
@@ -230,21 +244,15 @@ namespace JEBDebug
     };
 }
 
-#define JEBPROFILER_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
-#define JEBPROFILER_UNIQUE_NAME_EXPANDER1(name, lineno) \
-    JEBPROFILER_UNIQUE_NAME_EXPANDER2(name, lineno)
-#define JEBPROFILER_UNIQUE_NAME(name) \
-    JEBPROFILER_UNIQUE_NAME_EXPANDER1(name, __LINE__)
+#define INTERNAL_JEB_PROFILER_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno
+#define INTERNAL_JEB_PROFILER_UNIQUE_NAME_EXPANDER1(name, lineno) \
+    INTERNAL_JEB_PROFILER_UNIQUE_NAME_EXPANDER2(name, lineno)
+#define INTERNAL_JEB_PROFILER_UNIQUE_NAME(name) \
+    INTERNAL_JEB_PROFILER_UNIQUE_NAME_EXPANDER1(name, __LINE__)
 
-#ifdef _MSC_VER
-    #define JEB_PROFILE() \
-        ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
-            (__FILE__, __func__, __LINE__)
-#else
-    #define JEB_PROFILE() \
-        ::JEBDebug::ProfilerTimer JEBPROFILER_UNIQUE_NAME(profile) \
-            (__FILE__, __func__, __LINE__)
-#endif
+#define JEB_PROFILE() \
+    ::JEBDebug::ProfilerTimer INTERNAL_JEB_PROFILER_UNIQUE_NAME(profile) \
+        (__FILE__, __func__, __LINE__)
 
 #define JEB_PROFILER_REPORT() \
     ::JEBDebug::Profiler::instance().write()
