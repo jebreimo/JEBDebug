@@ -17,7 +17,7 @@
 #include <string_view>
 #include <vector>
 
-#ifndef JEB_MULTI_UNIT_PROFILER
+#if !defined(JEB_INSTANTIATE_PROFILER) && !defined(JEB_MULTI_UNIT_PROFILER)
     #define JEB_INSTANTIATE_PROFILER
 #endif
 
