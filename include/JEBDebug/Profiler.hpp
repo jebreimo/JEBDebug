@@ -17,6 +17,10 @@
 #include <string_view>
 #include <vector>
 
+#ifndef JEB_MULTI_UNIT_PROFILER
+    #define JEB_INSTANTIATE_PROFILER
+#endif
+
 namespace JEBDebug
 {
     class ProfilerSection
@@ -101,8 +105,7 @@ namespace JEBDebug
     public:
         static Profiler& instance()
         {
-            static Profiler profiler;
-            return profiler;
+            return instance_;
         }
 
         void clear()
@@ -179,6 +182,8 @@ namespace JEBDebug
     private:
         Profiler() = default;
 
+        static Profiler instance_;
+
         using Clock = std::chrono::high_resolution_clock;
         using TimePoint = Clock::time_point;
         using Duration = Clock::duration;
@@ -189,6 +194,10 @@ namespace JEBDebug
 
         std::vector<ProfileSectionLookup::const_iterator> sequence_;
     };
+
+#ifdef JEB_INSTANTIATE_PROFILER
+    Profiler Profiler::instance_;
+#endif
 
     class ProfilerTimer
     {
@@ -205,7 +214,6 @@ namespace JEBDebug
             Profiler::instance().end_timer();
         }
     };
-
 }
 
 #define JEBPROFILER_UNIQUE_NAME_EXPANDER2(name, lineno) name##_##lineno

@@ -39,6 +39,7 @@ add_library(JEBDebug::JEBDebug ALIAS JEBDebug)
 
 if (JEBDEBUG_BUILD_EXAMPLES)
     add_subdirectory(examples/Fibonacci)
+    add_subdirectory(examples/MultiUnitFibonacci)
     add_subdirectory(examples/TestMacros)
 endif ()
 
