@@ -8,8 +8,8 @@
 #pragma once
 
 #include <algorithm>
-#include <cfloat>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -176,7 +176,7 @@ namespace JEBDebug
                    #ifdef _MSC_VER
                    << "(" << (*it)->first.line_no << ")"
                    #else
-                   << ":" << (*it)->first.line_no()
+                   << ":" << (*it)->first.line_no
                    #endif
                    << '\n';
             }
