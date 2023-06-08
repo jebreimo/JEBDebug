@@ -17,5 +17,5 @@ target_link_libraries(MultiUnitFibonacci
     )
 
 target_compile_definitions(MultiUnitFibonacci
-    PUBLIC JEB_MULTI_UNIT_PROFILER
+    PUBLIC JEB_SHARE_PROFILER
     )
