@@ -14,110 +14,86 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace JEBDebug
 {
-    namespace Profiler_Internal
-    {
-        template <typename InpIt1, typename InpIt2>
-        std::pair<InpIt1, InpIt2> mismatch(InpIt1 beg, InpIt1 end,
-                                           InpIt2 cmpBeg, InpIt2 cmpEnd)
-        {
-            while (beg != end && cmpBeg != cmpEnd && *beg == *cmpBeg)
-            {
-                ++beg;
-                ++cmpBeg;
-            }
-            return std::make_pair(beg, cmpBeg);
-        }
-    }
-
     class ProfilerSection
     {
     public:
-        ProfilerSection(const std::string& fileName,
-                        const std::string& funcName,
-                        const std::string& name,
-                        size_t lineNo)
-            : m_FileName(fileName),
-              m_FuncName(funcName),
-              m_Name(name),
-              m_LineNo(lineNo)
+        ProfilerSection(std::string_view file_name,
+                        std::string_view func_name,
+                        size_t line_no)
+            : file_name(file_name),
+              func_name(func_name),
+              line_no(line_no)
         {}
 
-        const std::string& fileName() const {return m_FileName;}
-        const std::string& funcName() const {return m_FuncName;}
-        const std::string& name() const {return m_Name;}
-        size_t lineNo() const {return m_LineNo;}
-    private:
-        std::string m_FileName;
-        std::string m_FuncName;
-        std::string m_Name;
-        size_t m_LineNo;
+        std::string_view file_name;
+        std::string_view func_name;
+        std::string_view name;
+        size_t line_no;
     };
 
     inline bool operator<(const ProfilerSection& a, const ProfilerSection& b)
     {
-        if (a.lineNo() != b.lineNo())
-            return a.lineNo() < b.lineNo();
-        if (a.funcName() != b.funcName())
-            return a.funcName() < b.funcName();
-        if (a.name() != b.name())
-            return a.name() < b.name();
-        return a.fileName() < b.fileName();
+        if (a.line_no != b.line_no)
+            return a.line_no < b.line_no;
+        if (a.func_name != b.func_name)
+            return a.func_name < b.func_name;
+        return a.file_name < b.file_name;
     }
 
     class ProfilerData
     {
     public:
+        using Duration = std::chrono::high_resolution_clock::duration;
+
         ProfilerData()
-         : m_Count(0),
-           m_AccTime(0),
-           m_MinTime(std::numeric_limits<double>::max()),
-           m_MaxTime(-std::numeric_limits<double>::max())
+         : count_(0),
+           acc_time_(0),
+           min_time_(std::numeric_limits<Duration>::max()),
+           max_time_(-std::numeric_limits<Duration>::min())
         {}
 
-        void addTime(double time)
+        void add_time(Duration total_time, Duration time)
         {
-            ++m_Count;
-            m_AccTime += time;
-            if (time < m_MinTime)
-                m_MinTime = time;
-            if (time > m_MaxTime)
-                m_MaxTime = time;
+            ++count_;
+            acc_time_ += time;
+            if (total_time < min_time_)
+                min_time_ = total_time;
+            if (total_time > max_time_)
+                max_time_ = total_time;
         }
 
-        size_t count() const
+        [[nodiscard]] size_t count() const
         {
-            return m_Count;
+            return count_;
         }
 
-        double accTime() const
+        [[nodiscard]] double acc_time() const
         {
-            return m_AccTime;
+            using namespace std::chrono;
+            return duration_cast<duration<double>>(acc_time_).count();
         }
 
-        double avgTime() const
+        [[nodiscard]] double min_time() const
         {
-            return m_Count == 0 ? 0.0 : m_AccTime / m_Count;
+            using namespace std::chrono;
+            return duration_cast<duration<double>>(min_time_).count();
         }
 
-        double minTime() const
+        [[nodiscard]] double max_time() const
         {
-            return m_MinTime;
-        }
-
-        double maxTime() const
-        {
-            return m_MaxTime;
+            using namespace std::chrono;
+            return duration_cast<duration<double>>(max_time_).count();
         }
     private:
-        size_t m_Count;
-        double m_AccTime;
-        double m_MinTime;
-        double m_MaxTime;
+        size_t count_;
+        Duration acc_time_;
+        Duration min_time_;
+        Duration max_time_;
     };
 
     class Profiler
@@ -131,51 +107,60 @@ namespace JEBDebug
 
         void clear()
         {
-            m_Profiles.clear();
+            profiles_.clear();
         }
 
-        void addTime(const std::string& fileName,
-                     const std::string& funcName,
-                     const std::string& name,
-                     size_t lineNo,
-                     double time)
+        void start_timer(std::string_view file_name,
+                         std::string_view func_name,
+                         size_t line_no)
         {
-            ProfilerSection section(fileName, funcName, name, lineNo);
-            auto it = m_Profiles.find(section);
-            if (it == m_Profiles.end())
+            call_stack_.emplace_back(
+                ProfilerSection(file_name, func_name, line_no),
+                Clock::now(),
+                Duration());
+        }
+
+        void end_timer()
+        {
+            auto end_time = Clock::now();
+            auto& [key, start_time, sub_duration] = call_stack_.back();
+            auto elapsed = end_time - start_time;
+            auto it = profiles_.find(key);
+            if (it == profiles_.end())
             {
-                it = m_Profiles.insert(
-                        std::make_pair(section, ProfilerData())).first;
-                m_Sequence.push_back(it);
+                it = profiles_.emplace(key, ProfilerData()).first;
+                sequence_.push_back(it);
             }
-            it->second.addTime(time);
+            it->second.add_time(elapsed, elapsed - sub_duration);
+            call_stack_.pop_back();
+            if (!call_stack_.empty())
+                std::get<2>(call_stack_.back()) += elapsed;
         }
 
         void write(std::ostream& os) const
         {
             size_t nameWidth = 0;
-            for (auto it = m_Sequence.begin(); it != m_Sequence.end(); ++it)
+            for (auto it = sequence_.begin(); it != sequence_.end(); ++it)
             {
                 nameWidth = std::max(nameWidth,
-                                     (*it)->first.funcName().size());
+                                     (*it)->first.func_name.size());
             }
 
             nameWidth = std::min(nameWidth, size_t(30));
-            for (auto it = m_Sequence.begin(); it != m_Sequence.end(); ++it)
+            for (auto it = sequence_.begin(); it != sequence_.end(); ++it)
             {
-                os << std::left << std::setw(nameWidth)
-                   << (*it)->first.funcName()
+                os << std::left << std::setw(std::streamsize(nameWidth))
+                   << (*it)->first.func_name
                    << std::setprecision(4) << std::fixed
                    << "  " << (*it)->second.count()
-                   << " " << (*it)->second.accTime()
-                   << " " << (*it)->second.minTime()
-                   << " " << (*it)->second.maxTime()
-                   << " " << (*it)->second.avgTime()
-                   << "  " << (*it)->first.fileName()
+                   << " " << (*it)->second.acc_time()
+                   << " " << (*it)->second.min_time()
+                   << " " << (*it)->second.max_time()
+                   << "  " << (*it)->first.file_name
                    #ifdef _MSC_VER
-                   << "(" << (*it)->first.lineNo() << ")"
+                   << "(" << (*it)->first.line_no << ")"
                    #else
-                   << ":" << (*it)->first.lineNo()
+                   << ":" << (*it)->first.line_no()
                    #endif
                    << std::endl;
             }
@@ -186,7 +171,6 @@ namespace JEBDebug
             write(std::cout);
         }
 
-
         void write(const std::string& filePath) const
         {
             std::ofstream file(filePath);
@@ -195,61 +179,31 @@ namespace JEBDebug
     private:
         Profiler() = default;
 
-        std::string commonFileNamePrefix() const
-        {
-            if (m_Profiles.empty())
-              return std::string();
+        using Clock = std::chrono::high_resolution_clock;
+        using TimePoint = Clock::time_point;
+        using Duration = Clock::duration;
+        std::vector<std::tuple<ProfilerSection, TimePoint, Duration>> call_stack_;
 
-            auto it = m_Profiles.begin();
-            std::string prefix = it->first.fileName();
-            for (++it; it != m_Profiles.end(); ++it)
-            {
-                auto newEnd = Profiler_Internal::mismatch(
-                        prefix.begin(),
-                        prefix.end(),
-                        it->first.fileName().begin(),
-                        it->first.fileName().end()).first;
-                if (newEnd != prefix.end())
-                  prefix = std::string(prefix.begin(), newEnd);
-            }
-            return prefix;
-        }
+        using ProfileSectionLookup = std::map<ProfilerSection, ProfilerData>;
+        ProfileSectionLookup profiles_;
 
-        typedef std::map<ProfilerSection, ProfilerData> ProfileSectionLookup;
-        ProfileSectionLookup m_Profiles;
-
-        std::vector<ProfileSectionLookup::const_iterator> m_Sequence;
+        std::vector<ProfileSectionLookup::const_iterator> sequence_;
     };
 
     class ProfilerTimer
     {
     public:
-        ProfilerTimer(const std::string& fileName,
-                      const std::string& funcName,
-                      size_t lineNo,
-                      const std::string& name = std::string())
-            : m_FileName(fileName),
-              m_FuncName(funcName),
-              m_Name(name),
-              m_LineNo(lineNo),
-              m_StartTime(std::chrono::high_resolution_clock::now())
-        {}
+        ProfilerTimer(std::string_view file_name,
+                      std::string_view func_name,
+                      size_t line_no)
+        {
+            Profiler::instance().start_timer(file_name, func_name, line_no);
+        }
 
         ~ProfilerTimer()
         {
-            using namespace std::chrono;
-            auto endTime = high_resolution_clock::now();
-            auto elapsed = duration_cast<duration<double>>(endTime - m_StartTime);
-            Profiler::instance().addTime(m_FileName, m_FuncName, m_Name,
-                                         m_LineNo, elapsed.count());
+            Profiler::instance().end_timer();
         }
-
-    private:
-        std::string m_FileName;
-        std::string m_FuncName;
-        std::string m_Name;
-        size_t m_LineNo;
-        std::chrono::high_resolution_clock::time_point m_StartTime;
     };
 
 }
@@ -270,5 +224,5 @@ namespace JEBDebug
             (__FILE__, __PRETTY_FUNCTION__, __LINE__)
 #endif
 
-    #define JEB_PROFILER_REPORT() \
+#define JEB_PROFILER_REPORT() \
     ::JEBDebug::Profiler::instance().write()

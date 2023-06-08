@@ -36,7 +36,7 @@ int main()
     JEB_TIMEIT();
 
     {
-        const int n = 25;
+        const int n = 27;
         JEB_PROFILE();
         JEB_SHOW(n, fibonacci_rec(n), fibonacci_it(n));
     }
