@@ -62,38 +62,45 @@ namespace JEBDebug
         {
 #if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
             if (IsDebuggerPresent())
-                setStream(m_DebugStream);
+                set_stream(debug_stream_);
 #endif
         }
 
         std::ostream& operator()()
         {
-            if (!m_Stream)
-                m_Stream = &std::clog;
-            return *m_Stream;
+            if (!stream_)
+                stream_ = &std::clog;
+            return *stream_;
         }
 
-        void setStream(std::ostream& stream)
+        void set_stream(std::ostream& stream)
         {
-            m_Stream = &stream;
+            stream_ = &stream;
         }
     private:
 #if defined(_WIN32) && defined(JEBDEBUG_STREAM_TO_DEBUGGER)
-        DebugStream m_DebugStream;
+        DebugStream debug_stream_;
 #endif
-        std::ostream* m_Stream = nullptr;
+        std::ostream* stream_ = nullptr;
     };
 
     static Stream STREAM;
 }
 
 #ifdef _MSC_VER
-    #define _JEBDEBUG_STREAM_LOCATION() \
-        __FILE__ "(" << __LINE__ << "): " << __FUNCSIG__
+    #define _JEBDEBUG_STREAM_LOCATION_2(file, line) \
+        file "(" #line "): " << __FUNCSIG__
 #else
-    #define _JEBDEBUG_STREAM_LOCATION() \
-        __FILE__ ":" << __LINE__ << ": " << __PRETTY_FUNCTION__
+    #define _JEBDEBUG_STREAM_LOCATION_2(file, line) \
+        file ":" #line ": " << __PRETTY_FUNCTION__
 #endif
+
+#define _JEBDEBUG_STREAM_LOCATION_1(file, line) \
+    _JEBDEBUG_STREAM_LOCATION_2(file, line)
+
+#define _JEBDEBUG_STREAM_LOCATION() \
+    _JEBDEBUG_STREAM_LOCATION_1(__FILE__, __LINE__)
+
 
 #define JEB_CHECKPOINT() \
     do { \
@@ -190,45 +197,45 @@ namespace JEBDebug
 
 namespace JEBDebug
 {
-    using std::chrono::high_resolution_clock;
-
     class CpuTimer
     {
     public:
+        using Clock = std::chrono::high_resolution_clock;
+
         void start()
         {
-            m_StartTime = high_resolution_clock::now();
-            m_IsStopped = false;
+            start_time_ = Clock::now();
+            is_stopped_ = false;
         }
 
         void stop()
         {
-            auto endTime = high_resolution_clock::now();
-            m_AccumulatedTime += endTime - m_StartTime;
-            m_IsStopped = true;
+            auto end_time = Clock::now();
+            accumulated_time_ += end_time - start_time_;
+            is_stopped_ = true;
         }
 
-        double seconds() const
+        [[nodiscard]] double seconds() const
         {
             using namespace std::chrono;
-            auto tmp = m_AccumulatedTime;
+            auto tmp = accumulated_time_;
             if (!stopped())
             {
-                auto endTime = high_resolution_clock::now();
-                tmp += endTime - m_StartTime;
+                auto end_time = Clock::now();
+                tmp += end_time - start_time_;
             }
             return duration<double>(tmp).count();
         }
 
-        bool stopped() const
+        [[nodiscard]] bool stopped() const
         {
-            return m_IsStopped;
+            return is_stopped_;
         }
 
     private:
-        high_resolution_clock::time_point m_StartTime = {};
-        high_resolution_clock::duration m_AccumulatedTime = {};
-        bool m_IsStopped = true;
+        Clock::time_point start_time_ = {};
+        Clock::duration accumulated_time_ = {};
+        bool is_stopped_ = true;
     };
 
     template <typename String>
@@ -239,22 +246,22 @@ namespace JEBDebug
         typedef std::basic_ostream<CharT, std::char_traits<CharT>> Stream;
 
         ScopedTimerImpl(const String& label, Stream& stream)
-            : m_Label(label),
-              m_Stream(stream)
+            : label_(label),
+              stream_(stream)
         {
-            m_Timer.start();
+            timer_.start();
         }
 
         ~ScopedTimerImpl()
         {
-            m_Timer.stop();
-            m_Stream << m_Label << m_Timer << std::endl;
+            timer_.stop();
+            stream_ << label_ << timer_ << std::endl;
         }
 
     private:
-        CpuTimer m_Timer;
-        String m_Label;
-        Stream& m_Stream;
+        CpuTimer timer_;
+        String label_;
+        Stream& stream_;
     };
 
     typedef ScopedTimerImpl<std::string> ScopedTimer;
@@ -284,13 +291,13 @@ namespace JEBDebug { namespace internal
     }
 
     template <typename Container>
-    void writeContainer(std::ostream& os, const Container& c)
+    void write_container(std::ostream& os, const Container& c)
     {
         write(os, std::begin(c), std::end(c));
     }
 
     template <typename It>
-    void writePretty(std::ostream& os, It begin, It end)
+    void write_pretty(std::ostream& os, It begin, It end)
     {
         size_t i = 0;
         for (; begin != end; begin++)
@@ -298,9 +305,9 @@ namespace JEBDebug { namespace internal
     }
 
     template <typename Container>
-    void writeContainerPretty(std::ostream& os, const Container& c)
+    void write_containerPretty(std::ostream& os, const Container& c)
     {
-        writePretty(os, std::begin(c), std::end(c));
+        write_pretty(os, std::begin(c), std::end(c));
     }
 }}
 
@@ -316,7 +323,7 @@ namespace JEBDebug { namespace internal
     do { \
         ::JEBDebug::STREAM() << _JEBDEBUG_STREAM_LOCATION() \
             << ":\n\t" #c " = ["; \
-        ::JEBDebug::internal::writeContainer(::JEBDebug::STREAM(), (c)); \
+        ::JEBDebug::internal::write_container(::JEBDebug::STREAM(), (c)); \
         ::JEBDebug::STREAM() << "]" << std::endl; \
     } while (false)
 
@@ -324,7 +331,7 @@ namespace JEBDebug { namespace internal
     do { \
         ::JEBDebug::STREAM() << _JEBDEBUG_STREAM_LOCATION() \
                     << ":\n\t" #begin " ... " #end " = [\n\t"; \
-        ::JEBDebug::internal::writePretty(::JEBDebug::STREAM(), (begin), (end)); \
+        ::JEBDebug::internal::write_pretty(::JEBDebug::STREAM(), (begin), (end)); \
         ::JEBDebug::STREAM() << "]" << std::endl; \
     } while (false)
 
@@ -332,7 +339,7 @@ namespace JEBDebug { namespace internal
     do { \
         ::JEBDebug::STREAM() << _JEBDEBUG_STREAM_LOCATION() \
             << ":\n\t" #c " = [\n\t"; \
-        ::JEBDebug::internal::writeContainerPretty(::JEBDebug::STREAM(), (c)); \
+        ::JEBDebug::internal::write_containerPretty(::JEBDebug::STREAM(), (c)); \
         ::JEBDebug::STREAM() << "]" << std::endl; \
     } while (false)
 
@@ -340,39 +347,39 @@ namespace JEBDebug
 {
     namespace internal
     {
-        size_t printHexNumbers(std::ostream& stream,
-                               const void* data, size_t numBytes,
-                               size_t numNumbers)
+        size_t print_hex_numbers(std::ostream& stream,
+                                 const void* data, size_t num_bytes,
+                                 size_t num_numbers)
         {
             auto flags = stream.setf(std::ios::hex, std::ios::basefield);
             auto fill = stream.fill('0');
             size_t i = 0;
-            auto n = std::min(numBytes, numNumbers);
+            auto n = std::min(num_bytes, num_numbers);
             const auto* cdata = static_cast<const unsigned char*>(data);
             for (; i < n; ++i)
                 stream << ' ' << std::setw(2) << unsigned(cdata[i]);
-            for (; i < numNumbers; ++i)
+            for (; i < num_numbers; ++i)
                 stream << "   ";
             stream.fill(fill);
             stream.flags(flags);
             return n;
         }
 
-        size_t printCharacters(std::ostream& stream,
-                               const void* data, size_t numBytes,
-                               size_t numChars)
+        size_t print_characters(std::ostream& stream,
+                                const void* data, size_t num_bytes,
+                                size_t num_chars)
         {
             size_t i = 0;
-            auto n = std::min(numBytes, numChars);
+            auto n = std::min(num_bytes, num_chars);
             const auto* cdata = static_cast<const unsigned char*>(data);
             for (; i < n; ++i)
             {
                 if (32 <= cdata[i] && cdata[i] < 127)
-                    stream.put(cdata[i]);
+                    stream.put(char(cdata[i]));
                 else
                     stream.put('.');
             }
-            for (; i < numChars; ++i)
+            for (; i < num_chars; ++i)
                 stream.put(' ');
             return n;
         }
@@ -394,17 +401,20 @@ namespace JEBDebug
         }(size);
         while (cdata != end)
         {
-            stream << std::setw(digits) << (intptr_t(cdata) - intptr_t(data));
-            const auto* tmpCdata = cdata;
+            stream << std::setw(std::streamsize(digits))
+                   << (intptr_t(cdata) - intptr_t(data));
+            const auto* tmp_cdata = cdata;
             for (int i = 0; i < 2; ++i)
             {
                 stream.put(' ');
-                tmpCdata += internal::printHexNumbers(stream, tmpCdata,
-                                                      end - tmpCdata, columns / 2);
+                tmp_cdata += internal::print_hex_numbers(stream, tmp_cdata,
+                                                        end - tmp_cdata,
+                                                        columns / 2);
             }
             stream << "  ";
-            cdata += internal::printCharacters(stream, cdata,
-                                               end - cdata, columns);
+            cdata += internal::print_characters(stream, cdata,
+                                                end - cdata,
+                                                columns);
             stream.put('\n');
         }
         stream.fill(fill);

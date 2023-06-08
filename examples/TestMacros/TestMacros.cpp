@@ -41,7 +41,7 @@ void test_SHOW()
 void test_REDIRECT()
 {
     std::stringstream ss;
-    JEBDebug::STREAM.setStream(ss);
+    JEBDebug::STREAM.set_stream(ss);
     JEB_CHECKPOINT();
     JEB_MESSAGE("Hello world!");
     std::cout << "Contents of ss:\n"
